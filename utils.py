@@ -1,21 +1,23 @@
 import world
 import torch
 from torch import optim
+from typing import Tuple, List, Dict, Optional, Any, Generator, Union
 import numpy as np
+from numpy.typing import NDArray
 from dataloader import BasicDataset
 from model import PairWiseModel
 from sklearn.metrics import roc_auc_score
 
 class BPRLoss:
     def __init__(self,
-                 recmodel : PairWiseModel,
-                 config : dict):
+                 recmodel: PairWiseModel,
+                 config: dict) -> None:
         self.model = recmodel
         self.weight_decay = config['decay']
         self.lr = config['lr']
         self.opt = optim.Adam(recmodel.parameters(), lr=self.lr)
 
-    def stageOne(self, users, pos, neg):
+    def stageOne(self, users: torch.Tensor, pos: torch.Tensor, neg: torch.Tensor) -> float:
         loss, reg_loss = self.model.bpr_loss(users, pos, neg)
         reg_loss = reg_loss*self.weight_decay
         loss = loss + reg_loss
@@ -26,12 +28,12 @@ class BPRLoss:
 
         return loss.cpu().item()
 
-def UniformSample_original(dataset, neg_ratio = 1):
+def UniformSample_original(dataset: BasicDataset, neg_ratio: int = 1) -> NDArray[np.int64]:
 
     S = UniformSample_original_python(dataset)
     return S
 
-def UniformSample_original_python(dataset : BasicDataset):
+def UniformSample_original_python(dataset: BasicDataset) -> NDArray[np.int64]:
     """
     the original impliment of BPR Sampling in GCN
     :return:
@@ -61,14 +63,14 @@ def UniformSample_original_python(dataset : BasicDataset):
 # ===================end samplers==========================
 # =====================utils====================================
 
-def set_seed(seed):
+def set_seed(seed: int) -> None:
     np.random.seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
     torch.manual_seed(seed)
 
-def minibatch(*tensors, **kwargs):
+def minibatch(*tensors: Union[torch.Tensor, NDArray], **kwargs: Any) -> Generator[Union[torch.Tensor, NDArray, Tuple], None, None]:
 
     batch_size = kwargs.get('batch_size', world.config['bpr_batch_size'])
 
@@ -81,7 +83,7 @@ def minibatch(*tensors, **kwargs):
             yield tuple(x[i:i + batch_size] for x in tensors)
 
 
-def shuffle(*arrays, **kwargs):
+def shuffle(*arrays: NDArray, **kwargs: Any) -> Union[NDArray, Tuple[NDArray, ...]]:
 
     require_indices = kwargs.get('indices', False)
 
@@ -115,20 +117,20 @@ class timer:
     NAMED_TAPE = {}
 
     @staticmethod
-    def get():
+    def get() -> float:
         if len(timer.TAPE) > 1:
             return timer.TAPE.pop()
         else:
             return -1
 
     @staticmethod
-    def time():
+    def time() -> float:
         import time
         return time.time()
     
 
     @staticmethod
-    def dict(select_keys=None):
+    def dict(select_keys: Optional[List[str]] = None) -> str:
         hint = "|"
         if select_keys is None:
             for key, value in timer.NAMED_TAPE.items():
@@ -140,7 +142,7 @@ class timer:
         return hint
 
     @staticmethod
-    def zero(select_keys=None):
+    def zero(select_keys: Optional[List[str]] = None) -> None:
         if select_keys is None:
             for key, value in timer.NAMED_TAPE.items():
                 timer.NAMED_TAPE[key] = 0
@@ -148,7 +150,7 @@ class timer:
             for key in select_keys:
                 timer.NAMED_TAPE[key] = 0
 
-    def __init__(self, tape=None, **kwargs):
+    def __init__(self, tape: Optional[List[float]] = None, **kwargs: Any) -> None:
         if kwargs.get('name'):
             timer.NAMED_TAPE[kwargs['name']] = timer.NAMED_TAPE[
                 kwargs['name']] if timer.NAMED_TAPE.get(kwargs['name']) else 0.
@@ -160,11 +162,11 @@ class timer:
             self.named = False
             self.tape = tape or timer.TAPE
 
-    def __enter__(self):
+    def __enter__(self) -> timer:
         self.start = timer.time()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         if self.named:
             timer.NAMED_TAPE[self.named] += timer.time() - self.start
         else:
@@ -172,7 +174,7 @@ class timer:
 
 # ====================Metrics==============================
 # =========================================================
-def RecallPrecision_ATk(test_data, r, k):
+def RecallPrecision_ATk(test_data: List[List[int]], r: NDArray, k: int) -> Dict[str, float]:
     """
     test_data should be a list? cause users may have different amount of pos items. shape (test_batch, k)
     pred_data : shape (test_batch, k) NOTE: pred_data should be pre-sorted
@@ -185,7 +187,7 @@ def RecallPrecision_ATk(test_data, r, k):
     precis = np.sum(right_pred)/precis_n
     return {'recall': recall, 'precision': precis}
 
-def MRRatK_r(r, k):
+def MRRatK_r(r: NDArray, k: int) -> float:
     """
     Mean Reciprocal Rank
     """
@@ -195,7 +197,7 @@ def MRRatK_r(r, k):
     pred_data = pred_data.sum(1)
     return np.sum(pred_data)
 
-def NDCGatK_r(test_data,r,k):
+def NDCGatK_r(test_data: List[List[int]], r: NDArray, k: int) -> float:
     """
     Normalized Discounted Cumulative Gain
     rel_i = 1 or 0, so 2^{rel_i} - 1 = 1 or 0
@@ -216,7 +218,7 @@ def NDCGatK_r(test_data,r,k):
     ndcg[np.isnan(ndcg)] = 0.
     return np.sum(ndcg)
 
-def AUC(all_item_scores, dataset : BasicDataset, test_data):
+def AUC(all_item_scores: NDArray, dataset: BasicDataset, test_data: NDArray) -> float:
     """
         design for a single user
     """
@@ -226,7 +228,7 @@ def AUC(all_item_scores, dataset : BasicDataset, test_data):
     test_item_scores = all_item_scores[all_item_scores >= 0]
     return roc_auc_score(r, test_item_scores)
 
-def getLabel(test_data, pred_data):
+def getLabel(test_data: List[List[int]], pred_data: List[List[int]]) -> NDArray:
     r = []
     for i in range(len(test_data)):
         groundTrue = test_data[i]

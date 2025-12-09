@@ -1,20 +1,21 @@
 import torch
+from typing import Tuple, List, Optional
 from dataloader import BasicDataset
 from torch import nn
 
 torch.nn.functional.softplus
 
 class BasicModel(nn.Module):    
-    def __init__(self):
+    def __init__(self) -> None:
         super(BasicModel, self).__init__()
     
-    def getUsersRating(self, users):
+    def getUsersRating(self, users: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
     
 class PairWiseModel(BasicModel):
-    def __init__(self):
+    def __init__(self) -> None:
         super(PairWiseModel, self).__init__()
-    def bpr_loss(self, users, pos, neg):
+    def bpr_loss(self, users: torch.Tensor, pos: torch.Tensor, neg: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Parameters:
             users: users list 
@@ -38,14 +39,14 @@ class PairWiseModel(BasicModel):
 """在下方编写代码处编写代码"""
 class GCN(PairWiseModel):
     def __init__(self, 
-                 config:dict, 
-                 dataset:BasicDataset):
+                 config: dict, 
+                 dataset: BasicDataset) -> None:
         super(GCN, self).__init__()
         self.config = config
         self.dataset =  dataset
         self.__init_weight()
 
-    def __init_weight(self):
+    def __init_weight(self) -> None:
         self.num_users  = self.dataset.n_users
         self.num_items  = self.dataset.m_items
         self.latent_dim = self.config['latent_dim_rec']
@@ -62,7 +63,7 @@ class GCN(PairWiseModel):
         print(f"gcn is already to go(dropout:{self.config['dropout']})")
 
     # 随机删几条边
-    def __dropout_x(self, x, keep_prob):
+    def __dropout_x(self, x: torch.Tensor, keep_prob: float) -> torch.Tensor:
         size = x.size()
         index = x.indices().t()
         values = x.values()
@@ -73,11 +74,11 @@ class GCN(PairWiseModel):
         g = torch.sparse_coo_tensor(index.t(), values, size)
         return g
     
-    def __dropout(self, keep_prob):
+    def __dropout(self, keep_prob: float) -> torch.Tensor:
         graph = self.__dropout_x(self.Graph, keep_prob)
         return graph
     
-    def computer(self):
+    def computer(self) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         propagate methods for GCN
         """       
@@ -129,7 +130,7 @@ class GCN(PairWiseModel):
 
         return rating
     
-    def getEmbedding(self, users, pos_items, neg_items):
+    def getEmbedding(self, users: torch.Tensor, pos_items: torch.Tensor, neg_items: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         all_users, all_items = self.computer()
         users_emb = all_users[users]
         pos_emb = all_items[pos_items]
@@ -140,7 +141,7 @@ class GCN(PairWiseModel):
         return users_emb, pos_emb, neg_emb, users_emb_ego, pos_emb_ego, neg_emb_ego
     
     # BPR 损失函数
-    def bpr_loss(self, users, pos, neg):
+    def bpr_loss(self, users: torch.Tensor, pos: torch.Tensor, neg: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         (users_emb, pos_emb, neg_emb, 
         userEmb0,  posEmb0, negEmb0) = self.getEmbedding(users.long(), pos.long(), neg.long())
         reg_loss = (1/2)*(userEmb0.norm(2).pow(2) +
