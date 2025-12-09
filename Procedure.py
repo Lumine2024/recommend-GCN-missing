@@ -1,11 +1,12 @@
 import world
 import numpy as np
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple
 import torch
 import utils
 from utils import timer
+from model import PairWiseModel
 
-def BPR_train_original(dataset: utils.BasicDataset, recommend_model: Any, loss_class: utils.BPRLoss, neg_k: int = 1) -> str:
+def BPR_train_original(dataset: utils.BasicDataset, recommend_model: PairWiseModel, loss_class: utils.BPRLoss, neg_k: int = 1) -> str:
     Recmodel = recommend_model
     Recmodel.train()
     bpr: utils.BPRLoss = loss_class
@@ -52,7 +53,7 @@ def test_one_batch(X: Tuple[torch.Tensor, List[List[int]]]) -> Dict[str, np.ndar
             'ndcg':np.array(ndcg)}
         
             
-def Test(dataset: utils.BasicDataset, Recmodel: Any) -> Dict[str, np.ndarray]:
+def Test(dataset: utils.BasicDataset, Recmodel: PairWiseModel) -> Dict[str, np.ndarray]:
     u_batch_size = world.config['test_u_batch_size']
     testDict: dict = dataset.testDict
 
