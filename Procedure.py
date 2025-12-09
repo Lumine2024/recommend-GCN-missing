@@ -10,7 +10,7 @@ from model import PairWiseModel
 def BPR_train_original(dataset: BasicDataset, recommend_model: PairWiseModel, loss_class: BPRLoss, neg_k: int = 1) -> str:
     Recmodel = recommend_model
     Recmodel.train()
-    bpr: BPRLoss = loss_class
+    bpr = loss_class
     
     with timer(name="Sample"):
         S = utils.UniformSample_original(dataset)

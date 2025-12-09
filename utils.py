@@ -162,7 +162,7 @@ class timer:
             self.named = False
             self.tape = tape or timer.TAPE
 
-    def __enter__(self) -> 'timer':
+    def __enter__(self) -> timer:
         self.start = timer.time()
         return self
 
