@@ -1,6 +1,5 @@
 import os
 from os.path import join
-from typing import List
 import torch
 from parse import parse_args
 
