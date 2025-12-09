@@ -83,7 +83,7 @@ def minibatch(*tensors: Union[torch.Tensor, NDArray], **kwargs: Any) -> Generato
             yield tuple(x[i:i + batch_size] for x in tensors)
 
 
-def shuffle(*arrays: NDArray, **kwargs: Any) -> Union[NDArray, Tuple[NDArray, ...], Tuple[Union[NDArray, Tuple[NDArray, ...]], NDArray]]:
+def shuffle(*arrays: NDArray, **kwargs: Any) -> Union[NDArray, Tuple[NDArray, ...]]:
 
     require_indices = kwargs.get('indices', False)
 
@@ -150,7 +150,7 @@ class timer:
             for key in select_keys:
                 timer.NAMED_TAPE[key] = 0
 
-    def __init__(self, tape: Optional[List[int]] = None, **kwargs: Any) -> None:
+    def __init__(self, tape: Optional[List[float]] = None, **kwargs: Any) -> None:
         if kwargs.get('name'):
             timer.NAMED_TAPE[kwargs['name']] = timer.NAMED_TAPE[
                 kwargs['name']] if timer.NAMED_TAPE.get(kwargs['name']) else 0.
