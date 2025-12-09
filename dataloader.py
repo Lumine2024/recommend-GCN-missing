@@ -1,6 +1,8 @@
 from os.path import join
+from typing import List, Dict, Tuple, Union
 import torch
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 from torch.utils.data import Dataset
 from scipy.sparse import csr_matrix
@@ -8,40 +10,40 @@ import world
 from world import cprint
 
 class BasicDataset(Dataset):
-    def __init__(self):
+    def __init__(self) -> None:
         print("init dataset")
     
     @property
-    def n_users(self):
+    def n_users(self) -> int:
         raise NotImplementedError
     
     @property
-    def m_items(self):
+    def m_items(self) -> int:
         raise NotImplementedError
     
     @property
-    def trainDataSize(self):
+    def trainDataSize(self) -> int:
         raise NotImplementedError
     
     @property
-    def testDict(self):
+    def testDict(self) -> Dict[int, List[int]]:
         raise NotImplementedError
     
     @property
-    def allPos(self):
+    def allPos(self) -> List[NDArray]:
         raise NotImplementedError
     
-    def getUserItemFeedback(self, users, items):
+    def getUserItemFeedback(self, users: NDArray, items: NDArray) -> NDArray:
         raise NotImplementedError
     
-    def getUserPosItems(self, users):
+    def getUserPosItems(self, users: List[int]) -> List[NDArray]:
         raise NotImplementedError
     
-    def getUserNegItems(self, users):
+    def getUserNegItems(self, users: List[int]) -> List[NDArray]:
 
         raise NotImplementedError
     
-    def getSparseGraph(self):
+    def getSparseGraph(self) -> torch.Tensor:
         raise NotImplementedError
 
 
@@ -54,7 +56,7 @@ class BasicDataset(Dataset):
 """UserItemNet是一个1892*4489的稀疏矩阵"""
 """在下方编写代码处编写代码"""
 class LastFM(BasicDataset):
-    def __init__(self, path="./data/lastfm"):
+    def __init__(self, path: str = "./data/lastfm") -> None:
         # train or test
         cprint("loading [last fm]")
         self.mode_dict = {'train':0, "test":1}
@@ -110,26 +112,26 @@ class LastFM(BasicDataset):
         self.__testDict = self.__build_test()
 
     @property
-    def n_users(self):
+    def n_users(self) -> int:
         return self._n_users
     
     @property
-    def m_items(self):
+    def m_items(self) -> int:
         return self._m_items
     
     @property
-    def trainDataSize(self):
+    def trainDataSize(self) -> int:
         return len(self.trainUser)
     
     @property
-    def testDict(self):
+    def testDict(self) -> Dict[int, List[int]]:
         return self.__testDict
 
     @property
-    def allPos(self):
+    def allPos(self) -> List[NDArray]:
         return self._allPos
 
-    def getSparseGraph(self):
+    def getSparseGraph(self) -> torch.Tensor:
         if self.Graph is None:
             user_dim = torch.LongTensor(self.trainUser)
             item_dim = torch.LongTensor(self.trainItem)
@@ -165,7 +167,7 @@ class LastFM(BasicDataset):
 
         return self.Graph
 
-    def __build_test(self):
+    def __build_test(self) -> Dict[int, List[int]]:
         """
         return:
             dict: {user: [items]}
@@ -179,7 +181,7 @@ class LastFM(BasicDataset):
                 test_data[user] = [item]
         return test_data
     
-    def getUserItemFeedback(self, users, items):
+    def getUserItemFeedback(self, users: NDArray, items: NDArray) -> NDArray:
         """
         users:
             shape [-1]
@@ -191,29 +193,29 @@ class LastFM(BasicDataset):
         # print(self.UserItemNet[users, items])
         return np.array(self.UserItemNet[users, items]).astype('uint8').reshape((-1, ))
     
-    def getUserPosItems(self, users):
+    def getUserPosItems(self, users: List[int]) -> List[NDArray]:
         posItems = []
         for user in users:
             posItems.append(self.UserItemNet[user].nonzero()[1])
         return posItems
     
-    def getUserNegItems(self, users):
+    def getUserNegItems(self, users: List[int]) -> List[NDArray]:
         negItems = []
         for user in users:
             negItems.append(self.allNeg[user])
         return negItems
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> int:
         user = self.trainUniqueUsers[index]
         # return user_id and the positive items of the user
         return user
     
-    def switch2test(self):
+    def switch2test(self) -> None:
         """
         change dataset mode to offer test data to dataloader
         """
         self.mode = self.mode_dict['test']
     
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.trainUniqueUsers)
 
