@@ -31,5 +31,5 @@ topks = eval(args.topks)
 from warnings import simplefilter
 simplefilter(action="ignore", category=FutureWarning)
 
-def cprint(words : str):
+def cprint(words: str) -> None:
     print(f"\033[0;30;43m{words}\033[0m")

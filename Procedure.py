@@ -1,13 +1,16 @@
 import world
 import numpy as np
+from typing import Dict, List, Tuple
 import torch
 import utils
-from utils import timer
+from dataloader import BasicDataset
+from utils import BPRLoss, timer
+from model import PairWiseModel
 
-def BPR_train_original(dataset, recommend_model, loss_class, neg_k=1):
+def BPR_train_original(dataset: BasicDataset, recommend_model: PairWiseModel, loss_class: BPRLoss, neg_k: int = 1) -> str:
     Recmodel = recommend_model
     Recmodel.train()
-    bpr: utils.BPRLoss = loss_class
+    bpr = loss_class
     
     with timer(name="Sample"):
         S = utils.UniformSample_original(dataset)
@@ -36,7 +39,7 @@ def BPR_train_original(dataset, recommend_model, loss_class, neg_k=1):
     return f"loss{aver_loss:.3f}-{time_info}"
     
     
-def test_one_batch(X):
+def test_one_batch(X: Tuple[torch.Tensor, List[List[int]]]) -> Dict[str, np.ndarray]:
     sorted_items = X[0].numpy()
     groundTrue = X[1]
     r = utils.getLabel(groundTrue, sorted_items)
@@ -51,7 +54,7 @@ def test_one_batch(X):
             'ndcg':np.array(ndcg)}
         
             
-def Test(dataset: utils.BasicDataset, Recmodel):
+def Test(dataset: BasicDataset, Recmodel: PairWiseModel) -> Dict[str, np.ndarray]:
     u_batch_size = world.config['test_u_batch_size']
     testDict: dict = dataset.testDict
 
