@@ -96,7 +96,10 @@ class LastFM(BasicDataset):
 
         """##################################"""
         """##################################"""
-        self.UserItemNet  = csr_matrix((np.ones(len(self.trainUser)), (self.trainUser, self.trainItem)), shape=(self.n_users,self.m_items)) 
+        self.UserItemNet  = csr_matrix(
+            (np.ones(len(self.trainUser)), 
+            (self.trainUser, self.trainItem)),
+            shape=(self.n_users,self.m_items)) 
 
 
         print(f"LastFm Sparsity : {(len(self.trainUser) + len(self.testUser)) / self.n_users / self.m_items}")

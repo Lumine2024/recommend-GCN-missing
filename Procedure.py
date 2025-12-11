@@ -24,13 +24,8 @@ def BPR_train_original(dataset: BasicDataset, recommend_model: PairWiseModel, lo
     users, posItems, negItems = utils.shuffle(users, posItems, negItems)
     total_batch = len(users) // world.config['bpr_batch_size'] + 1
     aver_loss = 0.
-    for (batch_i,
-         (batch_users,
-          batch_pos,
-          batch_neg)) in enumerate(utils.minibatch(users,
-                                                   posItems,
-                                                   negItems,
-                                                   batch_size=world.config['bpr_batch_size'])):
+    for (batch_i, (batch_users, batch_pos, batch_neg)) in enumerate(
+        utils.minibatch(users, posItems, negItems, batch_size=world.config['bpr_batch_size'])):
         cri = bpr.stageOne(batch_users, batch_pos, batch_neg)
         aver_loss += cri
     aver_loss = aver_loss / total_batch

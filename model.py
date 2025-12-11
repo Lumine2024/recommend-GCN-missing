@@ -108,13 +108,13 @@ class GCN(PairWiseModel):
             all_emb = torch.sparse.mm(g_droped, all_emb)
             embs.append(all_emb)
 
-        # 取平均值，并输出二分图
+        # 取平均值，作为新的users向量和items向量
         embs = torch.stack(embs, dim=1)
         light_out = torch.mean(embs, dim=1)
         users, items = torch.split(light_out, [self.num_users, self.num_items])
         return users, items
     
-    def getUsersRating(self, users):
+    def getUsersRating(self, users: torch.Tensor) -> torch.Tensor:
         all_users, all_items = self.computer()
 
         """##################################"""
