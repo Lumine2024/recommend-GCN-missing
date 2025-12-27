@@ -2,6 +2,8 @@
 
 A Graph Convolutional Network (GCN) implementation for collaborative filtering recommendation, specifically designed for user-item interaction prediction. This project uses the Last.fm dataset to recommend items (music artists) to users based on their listening history.
 
+**Refactored:** The entire codebase has been consolidated into a single, clean `main.py` file (~391 lines) for improved readability and maintainability.
+
 ## Table of Contents
 - [Project Overview](#project-overview)
 - [File Structure](#file-structure)
@@ -20,84 +22,60 @@ This project implements a recommendation system using Graph Convolutional Networ
 - Multi-layer GCN for embedding propagation
 - BPR loss optimization for implicit feedback
 - Comprehensive evaluation metrics (Recall, Precision, NDCG)
+- **Single-file implementation** for easy understanding and deployment
 
 ## File Structure
 
-### Core Files
+The entire project is now consolidated into a single `main.py` file (~391 lines), organized into clear sections:
 
-#### `main.py`
-**Purpose:** Entry point of the application that orchestrates the training and testing pipeline.
+### `main.py` - Complete Implementation
 
-**Key Components:**
-- Initializes the dataset, model, and loss function
-- Sets random seed for reproducibility
-- Implements the main training loop that runs for 500 epochs
-- Performs testing every 10 epochs to monitor model performance
-- Calls `BPR_train_original()` for training and `Test()` for evaluation
+#### **Section 1: Configuration (Lines 1-50)**
+- Command-line argument parsing (replaces parse.py)
+- Global configuration setup (replaces world.py)
+- Device selection (CUDA/CPU)
+- Utility functions: `cprint()`, `set_seed()`
 
-#### `model.py`
-**Purpose:** Defines the GCN model architecture and loss computation.
-
-**Key Classes:**
-- `BasicModel`: Abstract base class for recommendation models
-- `PairWiseModel`: Base class for pairwise ranking models
-- `GCN`: Main model implementing Graph Convolutional Network
-
-**GCN Model Components:**
-- `__init_weight()`: Initializes user and item embeddings with normal distribution (std=0.1)
-- `__dropout()`: Implements edge dropout for regularization during training
-- `computer()`: Core GCN propagation method that:
-  - Concatenates user and item embeddings
-  - Performs `n_layers` (default: 3) rounds of graph convolution: `X_(i+1) = A * X_i`
-  - Aggregates embeddings across all layers by averaging
-  - Returns separate user and item embeddings
-- `getUsersRating()`: Computes prediction scores for user-item pairs using dot product followed by sigmoid activation
-- `bpr_loss()`: Calculates BPR loss and L2 regularization loss
-- `getEmbedding()`: Retrieves embeddings for users, positive items, and negative items
-
-#### `dataloader.py`
-**Purpose:** Handles data loading and preprocessing for the Last.fm dataset.
-
-**Key Classes:**
-- `BasicDataset`: Abstract base class defining dataset interface
-- `LastFM`: Concrete implementation for Last.fm dataset
-
-**LastFM Dataset Components:**
-- Loads training data from `data/lastfm/train1.txt` (42,135 interactions)
-- Loads testing data from `data/lastfm/test1.txt` (10,533 interactions)
-- Creates `UserItemNet`: A sparse CSR matrix (1892 × 4489) representing user-item interactions
-- `getSparseGraph()`: Constructs normalized adjacency matrix for the bipartite graph:
-  - Creates symmetric adjacency matrix: `A = [[0, R], [R^T, 0]]` where R is the user-item interaction matrix
-  - Applies symmetric normalization: `D^(-1/2) * A * D^(-1/2)`
-  - Returns sparse tensor on GPU/CPU
-- `getUserPosItems()`: Returns positive items for given users
-- `getUserNegItems()`: Returns negative items (not interacted) for given users
-
-#### `Procedure.py`
-**Purpose:** Implements training and testing procedures.
-
-**Key Functions:**
-- `BPR_train_original()`: Training procedure that:
-  - Samples user-item-negative_item triplets using uniform sampling
-  - Creates mini-batches of size `bpr_batch_size` (default: 2048)
-  - Computes BPR loss for each batch
-  - Performs backpropagation and parameter updates
-  - Returns average loss across all batches
-- `Test()`: Evaluation procedure that:
-  - Generates recommendations for all test users
-  - Excludes training items from recommendations
-  - Computes top-K ranked items for each user
-  - Calculates evaluation metrics (Precision, Recall, NDCG)
-- `test_one_batch()`: Computes metrics for a single batch of users
-
-#### `utils.py`
-**Purpose:** Provides utility functions for training and evaluation.
-
-**Key Components:**
-- `BPRLoss`: Class that wraps the BPR loss computation and optimizer (Adam)
-  - `stageOne()`: Performs one optimization step (forward, backward, update)
+#### **Section 2: Utils (Lines 51-155)**
+- `BPRLoss`: Class wrapping BPR loss computation and Adam optimizer
 - `UniformSample_original()`: Samples training triplets (user, positive_item, negative_item)
-- `set_seed()`: Sets random seeds for reproducibility
+- `minibatch()`: Generator for creating mini-batches
+- `timer`: Context manager for timing operations
+- Metric functions: `RecallPrecision_ATk()`, `NDCGatK_r()`, `getLabel()`
+
+#### **Section 3: Dataset (Lines 156-235)**
+- `BasicDataset`: Abstract base class
+- `LastFM`: Last.fm dataset implementation
+  - Loads training data from `data/lastfm/train1.txt` (42,135 interactions)
+  - Loads testing data from `data/lastfm/test1.txt` (10,533 interactions)
+  - Creates sparse user-item interaction matrix (1892 × 4489)
+  - `getSparseGraph()`: Constructs normalized adjacency matrix with symmetric normalization: `D^(-1/2) * A * D^(-1/2)`
+
+#### **Section 4: Model (Lines 236-315)**
+- `GCN`: Graph Convolutional Network model
+  - Initializes user and item embeddings (normal distribution, std=0.1)
+  - `__dropout_x()`: Implements edge dropout for regularization
+  - `computer()`: Core GCN propagation performing `n_layers` rounds of graph convolution: `X_(i+1) = A * X_i`
+  - `getUsersRating()`: Computes prediction scores using dot product and sigmoid activation
+  - `bpr_loss()`: Calculates BPR loss and L2 regularization
+  - `getEmbedding()`: Retrieves embeddings for users and items
+
+#### **Section 5: Training & Testing (Lines 316-375)**
+- `BPR_train_original()`: Training procedure
+  - Samples training triplets with uniform sampling
+  - Creates mini-batches (default: 2048)
+  - Performs backpropagation and parameter updates
+  - Returns average loss
+- `Test()`: Evaluation procedure
+  - Generates top-K recommendations for test users
+  - Excludes training items from recommendations
+  - Computes evaluation metrics (Precision, Recall, NDCG)
+
+#### **Section 6: Main Execution (Lines 376-391)**
+- Sets random seed for reproducibility
+- Initializes dataset, model, and optimizer
+- Runs training loop for specified epochs
+- Performs testing every 10 epochs
 - `minibatch()`: Generator for creating mini-batches
 - `shuffle()`: Shuffles training data
 - `timer`: Context manager for timing code blocks
@@ -119,26 +97,29 @@ This project implements a recommendation system using Graph Convolutional Networ
 - `lr`: Learning rate (default: 0.001)
 - `decay`: L2 regularization weight (default: 1e-4)
 - `TRAIN_epochs`: Number of training epochs (default: 500)
-- `topks`: K values for top-K evaluation (default: [20])
-- `seed`: Random seed (default: 2022)
-- `device`: Computing device (CUDA if available, else CPU)
+- `minibatch()`: Generator for mini-batches
+- `shuffle()`: Shuffles arrays while maintaining correspondence
+- `timer`: Context manager for timing operations
+- `RecallPrecision_ATk()`: Computes Recall and Precision at K
+- `NDCGatK_r()`: Computes Normalized Discounted Cumulative Gain at K
+- `getLabel()`: Converts predictions to binary labels
 
-#### `parse.py`
-**Purpose:** Command-line argument parser for configuring hyperparameters.
+### Supported Command-Line Arguments
 
-**Supported Arguments:**
-- `--bpr_batch`: BPR batch size
-- `--recdim`: Embedding dimension
-- `--layer`: Number of GCN layers
-- `--lr`: Learning rate
-- `--decay`: L2 regularization weight
-- `--dropout`: Enable/disable dropout
-- `--keepprob`: Edge keep probability
-- `--testbatch`: Test batch size
-- `--dataset`: Dataset name (currently supports 'lastfm')
-- `--topks`: Top-K values for evaluation
-- `--epochs`: Number of training epochs
-- `--seed`: Random seed
+All configuration is handled through command-line arguments (previously in parse.py):
+
+- `--bpr_batch`: BPR batch size (default: 2048)
+- `--recdim`: Embedding dimension (default: 64)
+- `--layer`: Number of GCN layers (default: 3)
+- `--lr`: Learning rate (default: 0.001)
+- `--decay`: L2 regularization weight (default: 1e-4)
+- `--dropout`: Enable/disable dropout (default: 0)
+- `--keepprob`: Edge keep probability (default: 0.6)
+- `--testbatch`: Test batch size (default: 100)
+- `--dataset`: Dataset name (default: 'lastfm')
+- `--topks`: Top-K values for evaluation (default: "[20]")
+- `--epochs`: Number of training epochs (default: 500)
+- `--seed`: Random seed (default: 2022)
 
 #### `requirements.txt`
 **Purpose:** Lists Python dependencies required to run the project.
